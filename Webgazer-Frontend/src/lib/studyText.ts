@@ -33,5 +33,33 @@ export const QUIZ: QuizQ[] = [
 			'Backwards to test attention'
 		],
 		answer: 2
+	},
+	{
+		id: 'q3',
+		prompt: 'According to the passage, what does reading involve?',
+		choices: [
+			'Only recognizing letters',
+			'Decoding symbols to derive meaning',
+			'Memorizing text word-for-word',
+			'Counting words per minute'
+		],
+		answer: 1
+	},
+	{
+		id: 'q4',
+		prompt: 'What should you avoid when reading this passage?',
+		choices: [
+			'Reading at a natural pace',
+			'Focusing on understanding',
+			'Skimming through the content',
+			'Decoding the symbols'
+		],
+		answer: 2
+	},
+	{
+		id: 'q5',
+		prompt: 'What is described as a "complex cognitive process"?',
+		choices: ['Writing', 'Reading', 'Speaking', 'Listening'],
+		answer: 1
 	}
 ];

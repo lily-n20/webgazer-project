@@ -4,10 +4,30 @@
 
   let answers: Record<string, number> = {};
   let submitted = false;
+  let currentPage = 0;
+  const questionsPerPage = 5;
+
+  $: totalPages = Math.ceil(QUIZ.length / questionsPerPage);
+  $: currentQuestions = QUIZ.slice(
+    currentPage * questionsPerPage,
+    (currentPage + 1) * questionsPerPage
+  );
 
   function handleAnswerChange(questionId: string, answerIndex: number) {
     answers[questionId] = answerIndex;
     answers = { ...answers }; // trigger reactivity
+  }
+
+  function nextPage() {
+    if (currentPage < totalPages - 1) {
+      currentPage++;
+    }
+  }
+
+  function previousPage() {
+    if (currentPage > 0) {
+      currentPage--;
+    }
   }
 
   function submit() {
@@ -36,7 +56,7 @@
       </div>
 
       <form class="space-y-6" on:submit|preventDefault={submit}>
-        {#each QUIZ as q (q.id)}
+        {#each currentQuestions as q (q.id)}
           <QuizQuestion
             question={q}
             answer={answers[q.id]}
@@ -44,11 +64,30 @@
           />
         {/each}
 
-        <div class="flex items-center justify-center">
+        <div class="flex items-center justify-between pt-4">
           <button
-            class="px-6 py-2 rounded-lg bg-gray-900 text-white hover:bg-gray-800"
-            type="submit"
-          >Submit</button>
+            type="button"
+            class="px-6 py-2 rounded-lg bg-gray-200 text-gray-800 hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed"
+            on:click={previousPage}
+            disabled={currentPage === 0}
+          >Previous</button>
+
+          <span class="text-gray-600">
+            Page {currentPage + 1} of {totalPages}
+          </span>
+
+          {#if currentPage === totalPages - 1}
+            <button
+              class="px-6 py-2 rounded-lg bg-gray-900 text-white hover:bg-gray-800"
+              type="submit"
+            >Submit</button>
+          {:else}
+            <button
+              type="button"
+              class="px-6 py-2 rounded-lg bg-gray-900 text-white hover:bg-gray-800"
+              on:click={nextPage}
+            >Next</button>
+          {/if}
         </div>
       </form>
     </div>
