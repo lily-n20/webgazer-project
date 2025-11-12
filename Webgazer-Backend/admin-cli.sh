@@ -396,6 +396,174 @@ delete_quiz_question() {
     fi
 }
 
+# Passage Functions
+list_passages() {
+    echo ""
+    show_info "Loading passages..."
+    
+    # Get study texts first
+    study_texts=$(api_get "/api/admin/study-text")
+    
+    if ! echo "$study_texts" | jq -e '.success' > /dev/null 2>&1; then
+        show_error "Failed to load study texts"
+        return
+    fi
+    
+    echo "$study_texts" | jq -r '.data[] | @json' | while read -r text_json; do
+        text_id=$(echo "$text_json" | jq -r '.id')
+        text_version=$(echo "$text_json" | jq -r '.version')
+        
+        passages=$(api_get "/api/admin/passage?study_text_id=$text_id")
+        
+        if echo "$passages" | jq -e '.success' > /dev/null 2>&1 && echo "$passages" | jq -e '.data | length > 0' > /dev/null 2>&1; then
+            echo ""
+            show_info "Study Text: $text_version (ID: $text_id)"
+            echo "$passages" | jq -r '.data[] | "  ID: \(.id) | Order: \(.order) | Title: \(.title // "No title") | Fonts: \(.font_left // "default")/\(.font_right // "default") | Content: \(.content[0:50])..."'
+        fi
+    done
+}
+
+create_passage() {
+    echo ""
+    read -p "Study Text ID: " study_text_id
+    
+    if [[ -z "$study_text_id" ]]; then
+        show_error "Study Text ID is required"
+        return
+    fi
+    
+    read -p "Order (default: next available): " order
+    order=${order:-0}
+    
+    read -p "Title (optional, press Enter to skip): " title
+    
+    echo "Enter content (press Enter, then type content, end with Ctrl+D):"
+    content=$(cat)
+    
+    if [[ -z "$content" ]]; then
+        show_error "Content is required"
+        return
+    fi
+    
+    echo ""
+    echo "Font assignment (serif or sans, optional - will use study text defaults if not set):"
+    read -p "Font for left panel (serif/sans, press Enter to skip): " font_left
+    read -p "Font for right panel (serif/sans, press Enter to skip): " font_right
+    
+    data=$(jq -n \
+        --argjson study_text_id "$study_text_id" \
+        --argjson order "$order" \
+        --arg title "$title" \
+        --arg content "$content" \
+        --arg font_left "$font_left" \
+        --arg font_right "$font_right" \
+        '{study_text_id: $study_text_id, order: $order, content: $content} +
+         (if $title != "" then {title: $title} else {} end) +
+         (if $font_left != "" then {font_left: $font_left} else {} end) +
+         (if $font_right != "" then {font_right: $font_right} else {} end)')
+    
+    response=$(api_post "/api/admin/passage" "$data")
+    
+    if echo "$response" | jq -e '.success' > /dev/null 2>&1; then
+        show_success "Passage created!"
+        echo "$response" | jq '.'
+    else
+        show_error "Failed to create passage"
+        echo "$response"
+    fi
+}
+
+update_passage() {
+    echo ""
+    read -p "Enter Passage ID to update: " id
+    
+    if [[ -z "$id" ]]; then
+        show_error "ID is required"
+        return
+    fi
+    
+    # Get current passage
+    current=$(api_get "/api/admin/passage?id=$id")
+    
+    if ! echo "$current" | jq -e '.success' > /dev/null 2>&1; then
+        show_error "Passage not found"
+        return
+    fi
+    
+    echo "Current passage:"
+    echo "$current" | jq '.data'
+    
+    read -p "New title (press Enter to skip): " title
+    echo "New content (press Enter, then type content, end with Ctrl+D, or just Enter to skip):"
+    content=$(cat)
+    
+    read -p "New order (press Enter to skip): " order
+    
+    echo ""
+    read -p "Update fonts? (y/n): " update_fonts
+    font_left_json="null"
+    font_right_json="null"
+    if [[ "$update_fonts" == "y" || "$update_fonts" == "Y" ]]; then
+        read -p "Font for left panel (serif/sans, press Enter to skip): " font_left
+        read -p "Font for right panel (serif/sans, press Enter to skip): " font_right
+        if [[ -n "$font_left" ]]; then
+            font_left_json="\"$font_left\""
+        fi
+        if [[ -n "$font_right" ]]; then
+            font_right_json="\"$font_right\""
+        fi
+    fi
+    
+    data=$(jq -n \
+        --argjson id "$id" \
+        --arg title "$title" \
+        --arg content "$content" \
+        --arg order "$order" \
+        --argjson font_left "$font_left_json" \
+        --argjson font_right "$font_right_json" \
+        '{id: $id} +
+         (if $title != "" then {title: $title} else {} end) +
+         (if $content != "" then {content: $content} else {} end) +
+         (if $order != "" then {order: ($order | tonumber)} else {} end) +
+         (if $font_left != "null" then {font_left: $font_left} else {} end) +
+         (if $font_right != "null" then {font_right: $font_right} else {} end)')
+    
+    response=$(api_put "/api/admin/passage" "$data")
+    
+    if echo "$response" | jq -e '.success' > /dev/null 2>&1; then
+        show_success "Passage updated!"
+        echo "$response" | jq '.'
+    else
+        show_error "Failed to update passage"
+        echo "$response"
+    fi
+}
+
+delete_passage() {
+    echo ""
+    read -p "Enter Passage ID to delete: " id
+    
+    if [[ -z "$id" ]]; then
+        show_error "ID is required"
+        return
+    fi
+    
+    read -p "Are you sure? (y/n): " confirm
+    if [[ "$confirm" != "y" && "$confirm" != "Y" ]]; then
+        show_info "Cancelled"
+        return
+    fi
+    
+    response=$(api_delete "/api/admin/passage?id=$id")
+    
+    if echo "$response" | jq -e '.success' > /dev/null 2>&1; then
+        show_success "Passage deleted!"
+    else
+        show_error "Failed to delete passage"
+        echo "$response"
+    fi
+}
+
 # Main menu
 show_menu() {
     clear
@@ -410,11 +578,17 @@ show_menu() {
     echo "  2) Create new study text"
     echo "  3) Update study text"
     echo ""
+    echo "Passage Management:"
+    echo "  4) List all passages"
+    echo "  5) Create new passage"
+    echo "  6) Update passage"
+    echo "  7) Delete passage"
+    echo ""
     echo "Quiz Question Management:"
-    echo "  4) List all quiz questions"
-    echo "  5) Create new quiz question"
-    echo "  6) Update quiz question"
-    echo "  7) Delete quiz question"
+    echo "  8) List all quiz questions"
+    echo "  9) Create new quiz question"
+    echo " 10) Update quiz question"
+    echo " 11) Delete quiz question"
     echo ""
     echo "  0) Exit"
     echo ""
@@ -424,10 +598,14 @@ show_menu() {
         1) list_study_texts; read -p "Press Enter to continue..."; show_menu ;;
         2) create_study_text; read -p "Press Enter to continue..."; show_menu ;;
         3) update_study_text; read -p "Press Enter to continue..."; show_menu ;;
-        4) list_quiz_questions; read -p "Press Enter to continue..."; show_menu ;;
-        5) create_quiz_question; read -p "Press Enter to continue..."; show_menu ;;
-        6) update_quiz_question; read -p "Press Enter to continue..."; show_menu ;;
-        7) delete_quiz_question; read -p "Press Enter to continue..."; show_menu ;;
+        4) list_passages; read -p "Press Enter to continue..."; show_menu ;;
+        5) create_passage; read -p "Press Enter to continue..."; show_menu ;;
+        6) update_passage; read -p "Press Enter to continue..."; show_menu ;;
+        7) delete_passage; read -p "Press Enter to continue..."; show_menu ;;
+        8) list_quiz_questions; read -p "Press Enter to continue..."; show_menu ;;
+        9) create_quiz_question; read -p "Press Enter to continue..."; show_menu ;;
+       10) update_quiz_question; read -p "Press Enter to continue..."; show_menu ;;
+       11) delete_quiz_question; read -p "Press Enter to continue..."; show_menu ;;
         0) show_info "Goodbye!"; exit 0 ;;
         *) show_error "Invalid option"; sleep 1; show_menu ;;
     esac

@@ -133,7 +133,7 @@ type ReadingEvent struct {
 type StudyText struct {
 	ID        uint      `gorm:"primaryKey" json:"id"`
 	Version   string    `gorm:"uniqueIndex;not null" json:"version"` // e.g., "v1", "default"
-	Content   string    `gorm:"type:text;not null" json:"content"`  // The reading passage
+	Content   string    `gorm:"type:text" json:"content,omitempty"`  // Legacy: single passage (deprecated, use Passages instead)
 	FontLeft  string    `gorm:"default:serif" json:"font_left"`      // Font for left panel: "serif" or "sans"
 	FontRight string    `gorm:"default:sans" json:"font_right"`      // Font for right panel: "serif" or "sans"
 	Active    bool      `gorm:"default:true" json:"active"`          // Whether this is the active version
@@ -142,6 +142,23 @@ type StudyText struct {
 	
 	// Relationships
 	QuizQuestions []QuizQuestion `gorm:"foreignKey:StudyTextID;references:ID" json:"quiz_questions,omitempty"`
+	Passages      []Passage      `gorm:"foreignKey:StudyTextID;references:ID;order:order ASC" json:"passages,omitempty"`
+}
+
+// Passage represents a single reading passage within a study text
+type Passage struct {
+	ID         uint      `gorm:"primaryKey" json:"id"`
+	StudyTextID uint     `gorm:"index;not null" json:"study_text_id"`
+	Order      int       `gorm:"not null" json:"order"`              // Display order (0, 1, 2, ...)
+	Content    string    `gorm:"type:text;not null" json:"content"`   // The passage text
+	Title      string    `json:"title,omitempty"`                     // Optional title for the passage
+	FontLeft   string    `gorm:"default:serif" json:"font_left,omitempty"`      // Font for left panel: "serif" or "sans" (optional, falls back to StudyText)
+	FontRight  string    `gorm:"default:sans" json:"font_right,omitempty"`      // Font for right panel: "serif" or "sans" (optional, falls back to StudyText)
+	CreatedAt  time.Time `json:"created_at"`
+	UpdatedAt  time.Time `json:"updated_at"`
+	
+	// Relationship
+	StudyText StudyText `gorm:"foreignKey:StudyTextID;references:ID" json:"study_text,omitempty"`
 }
 
 // QuizQuestion represents a quiz question for a study text

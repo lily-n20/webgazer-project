@@ -16,9 +16,6 @@ func seedInitialData() {
 	// Create study text
 	studyText := StudyText{
 		Version:   "default",
-		Content:   `Reading is a complex cognitive process that involves decoding symbols to derive meaning.
-This brief passage is used purely for testing font readability and basic comprehension.
-Try to read at a natural pace without skimming, and focus on understanding the content.`,
 		FontLeft:  "serif",
 		FontRight: "sans",
 		Active:    true,
@@ -27,6 +24,64 @@ Try to read at a natural pace without skimming, and focus on understanding the c
 	if err := db.Create(&studyText).Error; err != nil {
 		log.Printf("Error creating study text: %v", err)
 		return
+	}
+
+	// Create multiple passages for the study text with different font combinations
+	passages := []Passage{
+		{
+			StudyTextID: studyText.ID,
+			Order:       0,
+			Title:       "Passage 1: Introduction to Reading",
+			Content:     `Reading is a complex cognitive process that involves decoding symbols to derive meaning. This process requires the coordination of multiple brain regions working together to transform written text into comprehensible information. The human brain processes visual information through the eyes, sending signals to various neural networks that interpret and understand the text.`,
+			FontLeft:    "serif",
+			FontRight:   "sans",
+		},
+		{
+			StudyTextID: studyText.ID,
+			Order:       1,
+			Title:       "Passage 2: Typography and Readability",
+			Content:     `Typography plays a crucial role in how we perceive and understand written content. Different font styles can significantly impact reading speed, comprehension, and overall user experience. Serif fonts, with their decorative strokes, are often associated with traditional print media, while sans-serif fonts offer a cleaner, more modern appearance.`,
+			FontLeft:    "sans",
+			FontRight:   "serif",
+		},
+		{
+			StudyTextID: studyText.ID,
+			Order:       2,
+			Title:       "Passage 3: Reading Research",
+			Content:     `Researchers have conducted extensive studies to understand how different typographic choices affect reading performance. These studies examine factors such as font size, line spacing, letter spacing, and font style. The goal is to identify optimal typography settings that maximize readability and comprehension for various audiences and contexts.`,
+			FontLeft:    "serif",
+			FontRight:   "sans",
+		},
+		{
+			StudyTextID: studyText.ID,
+			Order:       3,
+			Title:       "Passage 4: Digital Reading",
+			Content:     `The shift from print to digital media has introduced new challenges and opportunities in typography. Screen readability differs from print, requiring careful consideration of font rendering, display resolution, and viewing conditions. Designers must balance aesthetic appeal with functional readability to create effective digital reading experiences.`,
+			FontLeft:    "sans",
+			FontRight:   "serif",
+		},
+		{
+			StudyTextID: studyText.ID,
+			Order:       4,
+			Title:       "Passage 5: Accessibility in Design",
+			Content:     `Accessibility is a fundamental principle in modern design, ensuring that content is readable and understandable for people with diverse abilities and needs. This includes considerations for visual impairments, cognitive differences, and various reading contexts. Good typography choices can make content more accessible to a wider audience.`,
+			FontLeft:    "serif",
+			FontRight:   "sans",
+		},
+		{
+			StudyTextID: studyText.ID,
+			Order:       5,
+			Title:       "Passage 6: The Future of Reading",
+			Content:     `As technology continues to evolve, so too will our understanding of reading and typography. Emerging technologies like e-ink displays, variable fonts, and adaptive interfaces offer new possibilities for optimizing reading experiences. The future of typography lies in creating flexible, responsive designs that adapt to individual preferences and reading contexts.`,
+			FontLeft:    "sans",
+			FontRight:   "serif",
+		},
+	}
+
+	for _, passage := range passages {
+		if err := db.Create(&passage).Error; err != nil {
+			log.Printf("Error creating passage: %v", err)
+		}
 	}
 
 	// Create quiz questions

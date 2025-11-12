@@ -182,6 +182,67 @@ ADMIN_QUIZ_DATA='{
 }'
 test_endpoint "Admin: Create Quiz Question" "POST" "/api/admin/quiz-question" "$ADMIN_QUIZ_DATA"
 
+# Test 13: Admin - Create Passage
+# First, get a study text ID (use the default one, which should be ID 1)
+STUDY_TEXT_ID=1
+ADMIN_PASSAGE_DATA="{
+    \"study_text_id\": $STUDY_TEXT_ID,
+    \"order\": 0,
+    \"title\": \"Test Passage\",
+    \"content\": \"This is a test passage for endpoint testing. It contains sample text to verify the passage creation endpoint works correctly.\",
+    \"font_left\": \"serif\",
+    \"font_right\": \"sans\"
+}"
+PASSAGE_RESPONSE=$(curl -s -X POST \
+    -H "Content-Type: application/json" \
+    -d "$ADMIN_PASSAGE_DATA" \
+    "${BASE_URL}/api/admin/passage")
+PASSAGE_ID=$(echo "$PASSAGE_RESPONSE" | jq -r '.id' 2>/dev/null)
+test_endpoint "Admin: Create Passage" "POST" "/api/admin/passage" "$ADMIN_PASSAGE_DATA"
+
+if [ -z "$PASSAGE_ID" ] || [ "$PASSAGE_ID" = "null" ]; then
+    echo -e "${YELLOW}⚠ Warning: Could not get passage ID. Using ID 1 for remaining tests.${NC}"
+    PASSAGE_ID=1
+fi
+echo "  Using Passage ID: $PASSAGE_ID"
+echo ""
+
+# Test 14: Admin - Get Passages by Study Text ID
+test_endpoint "Admin: Get Passages by Study Text ID" "GET" "/api/admin/passage?study_text_id=$STUDY_TEXT_ID" ""
+
+# Test 15: Admin - Get Single Passage by ID
+test_endpoint "Admin: Get Single Passage" "GET" "/api/admin/passage?id=$PASSAGE_ID" ""
+
+# Test 16: Admin - Update Passage
+ADMIN_PASSAGE_UPDATE_DATA="{
+    \"id\": $PASSAGE_ID,
+    \"title\": \"Updated Test Passage\",
+    \"content\": \"This is an updated test passage. The content has been modified to test the update endpoint.\",
+    \"font_left\": \"sans\",
+    \"font_right\": \"serif\"
+}"
+test_endpoint "Admin: Update Passage" "PUT" "/api/admin/passage" "$ADMIN_PASSAGE_UPDATE_DATA"
+
+# Test 17: Admin - Delete Passage (create a new one first to delete)
+ADMIN_PASSAGE_DELETE_DATA="{
+    \"study_text_id\": $STUDY_TEXT_ID,
+    \"order\": 999,
+    \"content\": \"This passage will be deleted.\",
+    \"font_left\": \"serif\",
+    \"font_right\": \"sans\"
+}"
+DELETE_PASSAGE_RESPONSE=$(curl -s -X POST \
+    -H "Content-Type: application/json" \
+    -d "$ADMIN_PASSAGE_DELETE_DATA" \
+    "${BASE_URL}/api/admin/passage")
+DELETE_PASSAGE_ID=$(echo "$DELETE_PASSAGE_RESPONSE" | jq -r '.id' 2>/dev/null)
+if [ -n "$DELETE_PASSAGE_ID" ] && [ "$DELETE_PASSAGE_ID" != "null" ]; then
+    test_endpoint "Admin: Delete Passage" "DELETE" "/api/admin/passage?id=$DELETE_PASSAGE_ID" ""
+else
+    echo -e "${YELLOW}⚠ Warning: Could not create passage for deletion test. Skipping delete test.${NC}"
+    echo ""
+fi
+
 echo "=============================================="
 echo -e "${GREEN}All endpoint tests completed!${NC}"
 echo ""

@@ -34,6 +34,7 @@ func main() {
 		&GazePoint{},
 		&ReadingEvent{},
 		&StudyText{},
+		&Passage{},
 		&QuizQuestion{},
 	)
 	if err != nil {
@@ -77,6 +78,10 @@ func main() {
 			admin.POST("/study-text", handleAdminStudyText)
 			admin.PUT("/study-text", handleAdminStudyText)
 			admin.GET("/study-text", handleAdminStudyText)
+			admin.POST("/passage", handleAdminPassage)
+			admin.PUT("/passage", handleAdminPassage)
+			admin.DELETE("/passage", handleAdminPassage)
+			admin.GET("/passage", handleAdminPassage)
 			admin.POST("/quiz-question", handleAdminQuizQuestion)
 			admin.PUT("/quiz-question", handleAdminQuizQuestion)
 			admin.DELETE("/quiz-question", handleAdminQuizQuestion)
@@ -270,21 +275,30 @@ func handleStudyText(c *gin.Context) {
 	version := c.DefaultQuery("version", "default")
 
 	var studyText StudyText
-	if err := db.Where("version = ? AND active = ?", version, true).First(&studyText).Error; err != nil {
+	if err := db.Preload("Passages").Where("version = ? AND active = ?", version, true).First(&studyText).Error; err != nil {
 		// If not found, try to get any active study text
-		if err := db.Where("active = ?", true).First(&studyText).Error; err != nil {
+		if err := db.Preload("Passages").Where("active = ?", true).First(&studyText).Error; err != nil {
 			c.JSON(404, gin.H{"error": "No study text found"})
 			return
 		}
 	}
 
-	c.JSON(200, gin.H{
+	// Build response - include passages if they exist, otherwise use legacy content
+	response := gin.H{
 		"id":        studyText.ID,
 		"version":   studyText.Version,
-		"content":   studyText.Content,
 		"font_left": studyText.FontLeft,
 		"font_right": studyText.FontRight,
-	})
+	}
+
+	// If passages exist, return them; otherwise return legacy content for backward compatibility
+	if len(studyText.Passages) > 0 {
+		response["passages"] = studyText.Passages
+	} else {
+		response["content"] = studyText.Content
+	}
+
+	c.JSON(200, response)
 }
 
 func handleQuizQuestions(c *gin.Context) {
@@ -338,7 +352,159 @@ func handleQuizQuestions(c *gin.Context) {
 	c.JSON(200, response)
 }
 
-// Admin endpoints for managing study text and quiz questions
+// Admin endpoints for managing study text, passages, and quiz questions
+
+func handleAdminPassage(c *gin.Context) {
+	switch c.Request.Method {
+	case "POST":
+		// Create new passage
+		var passage Passage
+		if err := c.ShouldBindJSON(&passage); err != nil {
+			c.JSON(400, gin.H{"error": "Invalid JSON: " + err.Error()})
+			return
+		}
+
+		// Validate required fields
+		if passage.StudyTextID == 0 || passage.Content == "" {
+			c.JSON(400, gin.H{"error": "study_text_id and content are required"})
+			return
+		}
+
+		// Verify study text exists
+		var studyText StudyText
+		if err := db.First(&studyText, passage.StudyTextID).Error; err != nil {
+			c.JSON(404, gin.H{"error": "Study text not found"})
+			return
+		}
+
+		// If order not specified, set it to the next available order
+		if passage.Order == 0 {
+			var maxOrder int
+			db.Model(&Passage{}).Where("study_text_id = ?", passage.StudyTextID).Select("COALESCE(MAX(`order`), -1)").Scan(&maxOrder)
+			passage.Order = maxOrder + 1
+		}
+
+		if err := db.Create(&passage).Error; err != nil {
+			c.JSON(500, gin.H{"error": "Failed to create passage: " + err.Error()})
+			return
+		}
+
+		c.JSON(201, gin.H{
+			"success": true,
+			"id":      passage.ID,
+			"message": "Passage created successfully",
+		})
+
+	case "PUT":
+		// Update existing passage
+		var updateData struct {
+			ID        uint   `json:"id"`
+			Order     *int   `json:"order,omitempty"`
+			Content   string `json:"content,omitempty"`
+			Title     string `json:"title,omitempty"`
+			FontLeft  string `json:"font_left,omitempty"`
+			FontRight string `json:"font_right,omitempty"`
+		}
+
+		if err := c.ShouldBindJSON(&updateData); err != nil {
+			c.JSON(400, gin.H{"error": "Invalid JSON: " + err.Error()})
+			return
+		}
+
+		if updateData.ID == 0 {
+			c.JSON(400, gin.H{"error": "ID is required"})
+			return
+		}
+
+		var passage Passage
+		if err := db.First(&passage, updateData.ID).Error; err != nil {
+			c.JSON(404, gin.H{"error": "Passage not found"})
+			return
+		}
+
+		// Update fields
+		if updateData.Content != "" {
+			passage.Content = updateData.Content
+		}
+		if updateData.Title != "" {
+			passage.Title = updateData.Title
+		}
+		if updateData.Order != nil {
+			passage.Order = *updateData.Order
+		}
+		if updateData.FontLeft != "" {
+			passage.FontLeft = updateData.FontLeft
+		}
+		if updateData.FontRight != "" {
+			passage.FontRight = updateData.FontRight
+		}
+
+		if err := db.Save(&passage).Error; err != nil {
+			c.JSON(500, gin.H{"error": "Failed to update passage: " + err.Error()})
+			return
+		}
+
+		c.JSON(200, gin.H{
+			"success": true,
+			"id":      passage.ID,
+			"message": "Passage updated successfully",
+		})
+
+	case "DELETE":
+		// Delete passage
+		id := c.Query("id")
+		if id == "" {
+			c.JSON(400, gin.H{"error": "ID parameter is required"})
+			return
+		}
+
+		if err := db.Delete(&Passage{}, id).Error; err != nil {
+			c.JSON(500, gin.H{"error": "Failed to delete passage: " + err.Error()})
+			return
+		}
+
+		c.JSON(200, gin.H{
+			"success": true,
+			"message": "Passage deleted successfully",
+		})
+
+	case "GET":
+		// Get passages - either by study_text_id or by id
+		studyTextID := c.Query("study_text_id")
+		id := c.Query("id")
+
+		if id != "" {
+			// Get single passage by ID
+			var passage Passage
+			if err := db.First(&passage, id).Error; err != nil {
+				c.JSON(404, gin.H{"error": "Passage not found"})
+				return
+			}
+
+			c.JSON(200, gin.H{
+				"success": true,
+				"data":    passage,
+			})
+		} else if studyTextID != "" {
+			// Get all passages for a study text
+			var passages []Passage
+			if err := db.Where("study_text_id = ?", studyTextID).Order("`order` ASC").Find(&passages).Error; err != nil {
+				c.JSON(500, gin.H{"error": "Failed to fetch passages: " + err.Error()})
+				return
+			}
+
+			c.JSON(200, gin.H{
+				"success": true,
+				"data":    passages,
+			})
+		} else {
+			c.JSON(400, gin.H{"error": "Either id or study_text_id parameter is required"})
+		}
+
+	default:
+		c.JSON(405, gin.H{"error": "Method not allowed"})
+	}
+}
 
 func handleAdminStudyText(c *gin.Context) {
 	switch c.Request.Method {

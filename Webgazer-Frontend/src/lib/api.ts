@@ -4,10 +4,21 @@
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
 
+export interface Passage {
+	id: number;
+	study_text_id: number;
+	order: number;
+	content: string;
+	title?: string;
+	font_left?: string;
+	font_right?: string;
+}
+
 export interface StudyTextResponse {
 	id: number;
 	version: string;
-	content: string;
+	content?: string;
+	passages?: Passage[];
 	font_left?: string;
 	font_right?: string;
 }
