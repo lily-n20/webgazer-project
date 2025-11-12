@@ -80,43 +80,41 @@
 
 <div class="min-h-screen bg-white flex flex-col">
   <div class="flex-1 flex flex-col items-center justify-center px-8 py-10">
-    <div class="w-full space-y-6 mb-6">
-      <div class="text-center space-y-2">
+    <div class="flex-1 w-full flex flex-col items-center justify-center gap-8 px-8">
+      <div class="text-center mb-6">
         <h1 class="text-4xl font-light text-gray-900 tracking-tight">Which font did you prefer?</h1>
       </div>
-    </div>
-
-    <div class="flex-1 w-full flex flex-col items-center justify-center gap-8 px-8">
-      <div class="w-full flex items-center justify-center gap-20">
-        <div class="flex-1 max-w-xl flex flex-col items-center">
+      
+      <div class="w-full flex items-center justify-center gap-70">
+        <div class="flex-1 max-w-xl flex flex-col items-center gap-8">
           <ReadingPanel
             label="Box A"
             fontType={fonts.left}
             text={SAMPLE_TEXT}
           />
           <button
-            class="px-6 py-3 mt-4 rounded-lg border-2 border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed
+            class="px-10 py-3 mt-5 rounded-lg border-2 border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed
                    {fontPreference === 'A' ? 'bg-gray-100 border-gray-500' : ''}"
             on:click={() => selectFontPreference('A')}
             disabled={fontPreference !== null}
           >
-            Select Box A
+            Box A
           </button>
         </div>
 
-        <div class="flex-1 max-w-xl flex flex-col items-center">
+        <div class="flex-1 max-w-xl flex flex-col items-center gap-8">
           <ReadingPanel
             label="Box B"
             fontType={fonts.right}
             text={SAMPLE_TEXT}
           />
           <button
-            class="px-6 py-3 mt-4 rounded-lg border-2 border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed
+            class="px-10 py-3 mt-5 rounded-lg border-2 border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed
                    {fontPreference === 'B' ? 'bg-gray-100 border-gray-500' : ''}"
             on:click={() => selectFontPreference('B')}
             disabled={fontPreference !== null}
           >
-            Select Box B
+            Box B
           </button>
         </div>
       </div>

@@ -146,12 +146,4 @@
     />
   </div>
 
-  <!-- Controls section - centered with max width -->
-  {#if allPointsDone}
-    <div class="flex-shrink-0 w-full flex justify-center px-4 pt-2 pb-0">
-      <div class="w-full max-w-3xl">
-        <p class="text-xs text-gray-600 text-center">Calibration complete! Proceeding to accuracy check...</p>
-      </div>
-    </div>
-  {/if}
 </div>

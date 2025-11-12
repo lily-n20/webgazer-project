@@ -16,7 +16,6 @@
     </div>
 
     <div class="space-y-3">
-      <label for="name-input" class="block text-left text-sm text-gray-600">Name (optional for now)</label>
       <input
         id="name-input"
         class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring focus:border-gray-900"
