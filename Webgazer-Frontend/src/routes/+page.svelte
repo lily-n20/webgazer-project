@@ -12,8 +12,7 @@
 <div class="min-h-screen bg-white flex items-center justify-center px-4">
   <div class="max-w-xl w-full space-y-8 text-center">
     <div class="space-y-4">
-      <h1 class="text-5xl font-light text-gray-900 tracking-tight">👀 Readability Study</h1>
-      <p class="text-gray-600 font-light">We’ll calibrate eye tracking, then compare two fonts on the same text and take a short quiz.</p>
+      <h1 class="text-5xl font-light text-gray-900 tracking-tight">Readability Study</h1>
     </div>
 
     <div class="space-y-3">

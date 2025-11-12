@@ -12,6 +12,7 @@
   let t0 = 0;
   let timeA = 0;
   let timeB = 0;
+  let fontPreference: 'A' | 'B' | null = null;
 
   // randomly assign which side is Serif vs Sans
   const fonts: { left: 'serif' | 'sans', right: 'serif' | 'sans' } = Math.random() < 0.5
@@ -45,16 +46,26 @@
     if (!started || doneB) return;
     timeB = performance.now() - t0;
     doneB = true;
+  }
 
-    // stash results and continue to quiz
+  function selectFontPreference(preference: 'A' | 'B') {
+    fontPreference = preference;
+    // Store preference
+    sessionStorage.setItem('font_preference', preference);
+    sessionStorage.setItem('font_preferred_type', preference === 'A' ? fonts.left : fonts.right);
+    
+    // Stash results and continue to quiz
     sessionStorage.setItem('font_left', fonts.left);
     sessionStorage.setItem('font_right', fonts.right);
     sessionStorage.setItem('time_left_ms', String(fonts.left === 'serif' ? timeA : timeB));
     sessionStorage.setItem('time_right_ms', String(fonts.right === 'serif' ? timeB : timeA));
-    // simpler explicit:
     sessionStorage.setItem('timeA_ms', String(timeA));
     sessionStorage.setItem('timeB_ms', String(timeB));
-    goto('/quiz');
+    
+    // Navigate to quiz after a brief delay
+    setTimeout(() => {
+      goto('/quiz');
+    }, 500);
   }
 
 </script>
@@ -67,47 +78,54 @@
   onInitialized={handleWebGazerInitialized}
 />
 
-<div class="min-h-screen bg-white px-4 py-10">
-  <div class="max-w-5xl mx-auto space-y-6">
-    <div class="text-center space-y-2">
-      <h1 class="text-4xl font-light text-gray-900 tracking-tight">Font Comparison</h1>
-      <p class="text-gray-500">Same text, two fonts. Read both boxes at a normal pace.</p>
+<div class="min-h-screen bg-white flex flex-col">
+  <div class="flex-1 flex flex-col items-center justify-center px-8 py-10">
+    <div class="w-full space-y-6 mb-6">
+      <div class="text-center space-y-2">
+        <h1 class="text-4xl font-light text-gray-900 tracking-tight">Which font did you prefer?</h1>
+      </div>
     </div>
 
-    <div class="flex items-center justify-center gap-3">
-      <button
-        class="px-5 py-2 rounded-lg bg-gray-900 text-white hover:bg-gray-800 disabled:opacity-50"
-        on:click={start}
-        disabled={started}
-      >Start</button>
-      {#if started}
-        <span class="text-sm text-gray-500">Timer running…</span>
-      {/if}
-    </div>
+    <div class="flex-1 w-full flex flex-col items-center justify-center gap-8 px-8">
+      <div class="w-full flex items-center justify-center gap-20">
+        <div class="flex-1 max-w-xl flex flex-col items-center">
+          <ReadingPanel
+            label="Box A"
+            fontType={fonts.left}
+            text={SAMPLE_TEXT}
+            done={doneA}
+            onComplete={completeA}
+            disabled={!started}
+          />
+          <button
+            class="px-6 py-3 mt-4 rounded-lg border-2 border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed
+                   {fontPreference === 'A' ? 'bg-gray-100 border-gray-500' : ''}"
+            on:click={() => selectFontPreference('A')}
+            disabled={fontPreference !== null}
+          >
+            Select Box A
+          </button>
+        </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-      <ReadingPanel
-        label="Box A"
-        fontType={fonts.left}
-        text={SAMPLE_TEXT}
-        done={doneA}
-        onComplete={completeA}
-        disabled={!started}
-      />
-
-      <ReadingPanel
-        label="Box B"
-        fontType={fonts.right}
-        text={SAMPLE_TEXT}
-        done={doneB}
-        onComplete={completeB}
-        disabled={!started || !doneA}
-      />
-    </div>
-
-    <div class="text-sm text-gray-500">
-      {#if doneA}<p>Box A time: {(timeA/1000).toFixed(2)}s</p>{/if}
-      {#if doneB}<p>Box B time: {(timeB/1000).toFixed(2)}s</p>{/if}
+        <div class="flex-1 max-w-xl flex flex-col items-center">
+          <ReadingPanel
+            label="Box B"
+            fontType={fonts.right}
+            text={SAMPLE_TEXT}
+            done={doneB}
+            onComplete={completeB}
+            disabled={!started || !doneA}
+          />
+          <button
+            class="px-6 py-3 mt-4 rounded-lg border-2 border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed
+                   {fontPreference === 'B' ? 'bg-gray-100 border-gray-500' : ''}"
+            on:click={() => selectFontPreference('B')}
+            disabled={fontPreference !== null}
+          >
+            Select Box B
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 </div>

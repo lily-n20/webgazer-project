@@ -14,13 +14,6 @@
 <div class="border rounded-xl p-4 shadow-sm">
   <div class="flex items-center justify-between mb-2">
     <h3 class="text-lg font-medium">{label} — {fontType === 'serif' ? 'Serif' : 'Sans'}</h3>
-    <button
-      class="text-sm px-3 py-1 rounded border hover:bg-gray-50 disabled:opacity-50"
-      on:click={onComplete}
-      disabled={disabled || done}
-    >
-      Done {label}
-    </button>
   </div>
   <div class={`prose max-w-none leading-7 ${fontClass(fontType)}`}>
     <p class="whitespace-pre-wrap">{text}</p>

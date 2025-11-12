@@ -138,7 +138,7 @@
   </div>
 
   <!-- Calibration grid - full width and height -->
-  <div class="flex-1 w-full px-4 pb-2 min-h-0">
+  <div class="flex-1 w-full min-h-0">
     <CalibrationGrid
       clicksPerPoint={CLICKS_PER_POINT}
       counts={counts}
@@ -147,19 +147,11 @@
   </div>
 
   <!-- Controls section - centered with max width -->
-  <div class="flex-shrink-0 w-full flex justify-center px-4 py-3">
-    <div class="w-full max-w-3xl space-y-2">
-      <div class="flex items-center justify-center gap-3">
-        <button
-          on:click={reset}
-          class="px-5 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 text-sm"
-        >
-          Clear calibration
-        </button>
-        {#if allPointsDone}
-          <p class="text-xs text-gray-600">Calibration complete! Proceeding to accuracy check...</p>
-        {/if}
+  {#if allPointsDone}
+    <div class="flex-shrink-0 w-full flex justify-center px-4 pt-2 pb-0">
+      <div class="w-full max-w-3xl">
+        <p class="text-xs text-gray-600 text-center">Calibration complete! Proceeding to accuracy check...</p>
       </div>
     </div>
-  </div>
+  {/if}
 </div>

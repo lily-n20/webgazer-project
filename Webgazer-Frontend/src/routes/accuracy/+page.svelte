@@ -19,7 +19,6 @@
   let showResultModal = false;
 
   $: canContinue = finished && accuracy >= ACCURACY_THRESHOLD;
-  // Show gaze trail when WebGazer is ready and during measurement
   $: showGazeTrail = webGazerReady && (measuring || !finished);
 
   // Check if WebGazer is already initialized from store
@@ -53,7 +52,6 @@
     webGazerReady = true;
     console.log('WebGazer initialized on accuracy page', instance);
     
-    // Wait a bit longer to ensure gaze data is flowing
     setTimeout(() => {
       startMeasurementIfReady();
     }, 1000);
@@ -80,6 +78,14 @@
       } catch (error) {
         console.warn('Error hiding overlays:', error);
       }
+    }
+
+    // Automatically navigate to reading page after a short delay if accuracy meets threshold
+    // Show result for 2 seconds, then navigate
+    if (acc >= ACCURACY_THRESHOLD) {
+      setTimeout(() => {
+        goto('/read');
+      }, 2000);
     }
   }
 
