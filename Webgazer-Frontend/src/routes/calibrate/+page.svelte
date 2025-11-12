@@ -56,6 +56,8 @@
     
     if (allDone) {
       console.log('All calibration points completed!');
+      // Store calibration points count
+      sessionStorage.setItem('calibration_points', String(totalClicks));
       // Small delay to ensure UI updates before navigation
       setTimeout(() => {
         goto('/accuracy');

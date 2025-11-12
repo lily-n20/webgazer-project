@@ -1,9 +1,12 @@
 <script lang="ts">
   import { QUIZ } from '$lib/studyText';
   import { QuizQuestion } from '$lib/components/quiz';
+  import { submitCompleteSession } from '$lib/api';
 
   let answers: Record<string, number> = {};
   let submitted = false;
+  let submitting = false;
+  let submitError: string | null = null;
   let currentPage = 0;
   const questionsPerPage = 5;
 
@@ -30,8 +33,25 @@
     }
   }
 
-  function submit() {
-    submitted = true;
+  async function submit() {
+    if (submitting) return;
+    
+    submitting = true;
+    submitError = null;
+
+    try {
+      const success = await submitCompleteSession(answers);
+      if (success) {
+        submitted = true;
+      } else {
+        submitError = 'Failed to submit responses. Please try again.';
+        submitting = false;
+      }
+    } catch (error) {
+      console.error('Error submitting quiz:', error);
+      submitError = error instanceof Error ? error.message : 'An error occurred while submitting.';
+      submitting = false;
+    }
   }
 </script>
 
@@ -56,6 +76,12 @@
       </div>
 
       <form class="space-y-6" on:submit|preventDefault={submit}>
+        {#if submitError}
+          <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+            {submitError}
+          </div>
+        {/if}
+
         {#each currentQuestions as q (q.id)}
           <QuizQuestion
             question={q}
@@ -78,9 +104,12 @@
 
           {#if currentPage === totalPages - 1}
             <button
-              class="px-6 py-2 rounded-lg bg-gray-900 text-white hover:bg-gray-800"
+              class="px-6 py-2 rounded-lg bg-gray-900 text-white hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
               type="submit"
-            >Submit</button>
+              disabled={submitting}
+            >
+              {submitting ? 'Submitting...' : 'Submit'}
+            </button>
           {:else}
             <button
               type="button"
