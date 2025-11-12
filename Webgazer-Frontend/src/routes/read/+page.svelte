@@ -1,9 +1,11 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
   import { goto } from '$app/navigation';
-  import { fetchStudyText, type Passage } from '$lib/api';
+  import { get } from 'svelte/store';
+  import { fetchStudyText, submitGazePoint, type Passage } from '$lib/api';
   import { WebGazerManager } from '$lib/components';
   import { ReadingPanel } from '$lib/components/reading';
+  import { webgazerStore } from '$lib/stores/webgazer';
 
   let wgInstance: any = null;
   let started = false;
@@ -31,8 +33,27 @@
     timeB: number;
   }> = [];
 
+  // Gaze data collection
+  let gazeCollectionInterval: ReturnType<typeof setInterval> | null = null;
+  let sessionDbId: number | null = null;
+  let gazeBuffer: Array<{ x: number; y: number; panel: string; phase: string; timestamp: number }> = [];
+  const GAZE_COLLECTION_INTERVAL = 100; // Collect gaze every 100ms
+  const GAZE_BATCH_SIZE = 10; // Submit in batches of 10 points
+
+  // Gaze indicator (red dot) - set to false for production deployment
+  const SHOW_GAZE_INDICATOR = true;
+  let currentGaze: { x: number; y: number } | null = null;
+  let hasGaze = false;
+  let gazeUnsubscribe: (() => void) | null = null;
+
   // Fetch study text on mount
   onMount(async () => {
+    // Get session ID from sessionStorage
+    const sessionIdStr = sessionStorage.getItem('session_db_id');
+    if (sessionIdStr) {
+      sessionDbId = parseInt(sessionIdStr, 10);
+    }
+
     const textData = await fetchStudyText();
     if (textData) {
       sessionStorage.setItem('study_text_id', String(textData.id));
@@ -69,17 +90,44 @@
       return;
     }
     loading = false;
+
+    // Start gaze collection
+    startGazeCollection();
+
+    // Subscribe to gaze store for indicator
+    if (SHOW_GAZE_INDICATOR) {
+      gazeUnsubscribe = webgazerStore.subscribe((state) => {
+        currentGaze = state.currentGaze;
+        hasGaze = state.hasGaze;
+      });
+    }
+  });
+
+  onDestroy(() => {
+    // Stop gaze collection
+    stopGazeCollection();
+    // Submit any remaining buffered gaze points
+    submitBufferedGazePoints();
+    // Unsubscribe from gaze store
+    if (gazeUnsubscribe) {
+      gazeUnsubscribe();
+    }
   });
 
   function loadPassage(index: number) {
     if (index >= passages.length) {
       // All passages completed, go to quiz
+      // Submit any remaining gaze data before leaving
+      submitBufferedGazePoints();
       saveAllPreferences();
       setTimeout(() => {
         goto('/quiz');
       }, 500);
       return;
     }
+    
+    // Submit gaze data from previous passage before loading new one
+    submitBufferedGazePoints();
     
     currentPassageIndex = index;
     currentPassage = passages[index];
@@ -102,6 +150,11 @@
     } else {
       fonts = { ...defaultFonts };
     }
+
+    // Auto-start reading when passage loads (this enables gaze collection)
+    setTimeout(() => {
+      start();
+    }, 100);
   }
 
   function handleWebGazerInitialized(instance: any) {
@@ -111,6 +164,119 @@
       .showFaceOverlay(false)
       .showFaceFeedbackBox(false)
       .showPredictionPoints(false);
+  }
+
+  // Determine which panel the gaze is on based on x coordinate
+  function getPanelFromGaze(x: number): string {
+    const screenWidth = window.innerWidth;
+    const midpoint = screenWidth / 2;
+    return x < midpoint ? 'A' : 'B';
+  }
+
+  // Get current reading phase based on which panel user is looking at
+  function getCurrentPhase(panel: string): string {
+    if (!started) return 'waiting';
+    
+    // Phase is determined by which panel the user is currently looking at
+    // This gives us more accurate phase tracking based on actual gaze behavior
+    if (panel === 'A') {
+      return 'reading_A';
+    } else if (panel === 'B') {
+      return 'reading_B';
+    }
+    
+    // Fallback: if we can't determine panel, use time-based logic
+    if (!doneA) return 'reading_A';
+    if (!doneB) return 'reading_B';
+    return 'completed';
+  }
+
+  // Collect gaze data periodically
+  function startGazeCollection() {
+    if (gazeCollectionInterval) return; // Already started
+
+    gazeCollectionInterval = setInterval(() => {
+      // Check for session ID update (in case it was set after page load)
+      if (!sessionDbId) {
+        const sessionIdStr = sessionStorage.getItem('session_db_id');
+        if (sessionIdStr) {
+          sessionDbId = parseInt(sessionIdStr, 10);
+          console.log('Gaze collection: Session ID found:', sessionDbId);
+        } else {
+          console.log('Gaze collection: No session ID yet, skipping...');
+          return; // Still no session ID, skip collection
+        }
+      }
+
+      if (!started) {
+        // Don't log every interval, just occasionally
+        if (Math.random() < 0.01) { // ~1% of the time
+          console.log('Gaze collection: Waiting for reading to start...');
+        }
+        return; // Only collect when reading has started
+      }
+
+      const gazeState = get(webgazerStore);
+      if (gazeState.currentGaze && gazeState.hasGaze) {
+        const panel = getPanelFromGaze(gazeState.currentGaze.x);
+        const phase = getCurrentPhase(panel);
+
+        // Add to buffer
+        gazeBuffer.push({
+          x: gazeState.currentGaze.x,
+          y: gazeState.currentGaze.y,
+          panel: panel,
+          phase: phase,
+          timestamp: Date.now()
+        });
+
+        // Submit in batches
+        if (gazeBuffer.length >= GAZE_BATCH_SIZE) {
+          console.log(`Submitting batch of ${gazeBuffer.length} gaze points`);
+          submitBufferedGazePoints();
+        }
+      }
+    }, GAZE_COLLECTION_INTERVAL);
+  }
+
+  function stopGazeCollection() {
+    if (gazeCollectionInterval) {
+      clearInterval(gazeCollectionInterval);
+      gazeCollectionInterval = null;
+    }
+  }
+
+  async function submitBufferedGazePoints() {
+    if (gazeBuffer.length === 0 || !sessionDbId) {
+      if (gazeBuffer.length > 0 && !sessionDbId) {
+        console.warn('Cannot submit gaze points: No session ID');
+      }
+      return;
+    }
+
+    console.log(`Submitting ${gazeBuffer.length} gaze points to session ${sessionDbId}`);
+
+    // Submit all buffered points
+    const promises = gazeBuffer.map(point =>
+      submitGazePoint({
+        session_id: sessionDbId!,
+        x: point.x,
+        y: point.y,
+        panel: point.panel,
+        phase: point.phase
+      }).catch((error) => {
+        console.error('Failed to submit gaze point:', error, point);
+        return false;
+      })
+    );
+
+    // Wait for all submissions (but don't block on failures)
+    const results = await Promise.allSettled(promises);
+    const successCount = results.filter(r => r.status === 'fulfilled' && r.value === true).length;
+    console.log(`Successfully submitted ${successCount}/${gazeBuffer.length} gaze points`);
+
+    // Clear buffer
+    gazeBuffer = [];
   }
 
   function start() {
@@ -133,8 +299,11 @@
     doneB = true;
   }
 
-  function selectFontPreference(preference: 'A' | 'B') {
+  async function selectFontPreference(preference: 'A' | 'B') {
     if (!currentPassage) return;
+    
+    // Submit any remaining gaze data before moving to next passage
+    await submitBufferedGazePoints();
     
     fontPreference = preference;
     const preferredFontType = preference === 'A' ? fonts.left : fonts.right;
@@ -256,3 +425,13 @@
     </div>
   {/if}
 </div>
+
+<!-- Gaze indicator (red dot) - only shown when SHOW_GAZE_INDICATOR is true -->
+{#if SHOW_GAZE_INDICATOR && hasGaze && currentGaze}
+  <div
+    class="fixed w-4 h-4 rounded-full ring-2 ring-white pointer-events-none z-50 transition-opacity duration-100"
+    style={`left:${currentGaze.x - 8}px; top:${currentGaze.y - 8}px; background: rgba(239, 68, 68, 0.9); box-shadow: 0 0 8px rgba(239, 68, 68, 0.5);`}
+    aria-label="Current gaze position"
+    aria-hidden="true"
+  ></div>
+{/if}

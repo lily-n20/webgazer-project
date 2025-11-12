@@ -20,7 +20,16 @@
       studyTextId ? parseInt(studyTextId, 10) : undefined
     );
     if (questions.length > 0) {
-      quizQuestions = questions;
+      // Remove duplicates based on question ID (keep first occurrence)
+      const seen = new Set<string>();
+      quizQuestions = questions.filter(q => {
+        if (seen.has(q.id)) {
+          console.warn(`Duplicate question ID found: ${q.id}, skipping duplicate`);
+          return false;
+        }
+        seen.add(q.id);
+        return true;
+      });
     } else {
       submitError = 'Failed to load quiz questions. Please refresh the page.';
     }
@@ -108,7 +117,7 @@
             <p class="text-red-500">No quiz questions available.</p>
           </div>
         {:else}
-          {#each currentQuestions as q (q.id)}
+          {#each currentQuestions as q, index (q.id + '_' + index)}
             <QuizQuestion
               question={q}
               answer={answers[q.id]}
@@ -116,36 +125,37 @@
             />
           {/each}
         {/if}
+      </form>
 
-        <div class="flex items-center justify-between pt-4">
+      <div class="flex items-center justify-between pt-4">
+        <button
+          type="button"
+          class="px-6 py-2 rounded-lg bg-gray-200 text-gray-800 hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed"
+          on:click={previousPage}
+          disabled={currentPage === 0}
+        >Previous</button>
+
+        <span class="text-gray-600">
+          Page {currentPage + 1} of {totalPages}
+        </span>
+
+        {#if currentPage === totalPages - 1}
+          <button
+            class="px-6 py-2 rounded-lg bg-gray-900 text-white hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
+            type="button"
+            on:click={submit}
+            disabled={submitting}
+          >
+            {submitting ? 'Submitting...' : 'Submit'}
+          </button>
+        {:else}
           <button
             type="button"
-            class="px-6 py-2 rounded-lg bg-gray-200 text-gray-800 hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed"
-            on:click={previousPage}
-            disabled={currentPage === 0}
-          >Previous</button>
-
-          <span class="text-gray-600">
-            Page {currentPage + 1} of {totalPages}
-          </span>
-
-          {#if currentPage === totalPages - 1}
-            <button
-              class="px-6 py-2 rounded-lg bg-gray-900 text-white hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
-              type="submit"
-              disabled={submitting}
-            >
-              {submitting ? 'Submitting...' : 'Submit'}
-            </button>
-          {:else}
-            <button
-              type="button"
-              class="px-6 py-2 rounded-lg bg-gray-900 text-white hover:bg-gray-800"
-              on:click={nextPage}
-            >Next</button>
-          {/if}
-        </div>
-      </form>
+            class="px-6 py-2 rounded-lg bg-gray-900 text-white hover:bg-gray-800"
+            on:click={nextPage}
+          >Next</button>
+        {/if}
+      </div>
     </div>
   </div>
 {/if}
