@@ -2,6 +2,73 @@
 
 This document explains how to create, update, and manage study text and quiz questions using the admin API endpoints.
 
+## Quick Start: Terminal Admin Interface
+
+The easiest way to manage study text and quiz questions is using the terminal-based admin interface.
+
+### Prerequisites
+
+
+1. **Start your backend server**:
+   ```bash
+   cd Webgazer-Backend
+   go run .
+   ```
+
+### Using the Admin CLI
+
+1. **Run the admin interface**:
+
+   ```bash
+   ./admin-cli.sh
+   ```
+
+3. **Navigate the menu**:
+   - Enter a number (1-7) to select an option
+   - Follow the prompts to enter data
+   - Press Enter to continue after each operation
+
+### Menu Options
+
+**Study Text Management:**
+
+- `1` - List all study texts (shows ID, version, active status, content preview)
+- `2` - Create new study text (prompts for version, content, active status)
+- `3` - Update study text (enter ID, then update fields)
+
+**Quiz Question Management:**
+
+- `4` - List all quiz questions (organized by study text)
+- `5` - Create new quiz question (prompts for all fields)
+- `6` - Update quiz question (enter ID, then update fields)
+- `7` - Delete quiz question (with confirmation)
+
+**Other:**
+
+- `0` - Exit
+
+### Troubleshooting Admin CLI
+
+**"Cannot connect to API" error:**
+
+- Make sure your backend is running: `cd Webgazer-Backend && go run .`
+- Check that the backend is on port 8080 (or update API_URL)
+
+**"404 page not found" error:**
+
+- The backend needs to be restarted after adding admin endpoints
+- Stop the backend (Ctrl+C) and restart: `go run .`
+
+**"jq is required" error:**
+
+- Install jq: `brew install jq`
+
+---
+
+## Manual API Usage (curl commands)
+
+If you prefer to use curl commands directly or need to script operations, here are the manual API endpoints:
+
 ## Study Text Management
 
 ### List All Study Texts
