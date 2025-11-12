@@ -156,6 +156,13 @@ Expected: `{"success":true,"id":1}`
 
 ## 9. Submit Gaze Point
 
+Submit a gaze point during reading session. The phase can be one of:
+
+- `waiting` - Before reading starts
+- `reading_A` - While reading Box A
+- `reading_B` - While reading Box B
+- `completed` - After both boxes are read
+
 ```bash
 curl -X POST http://localhost:8080/api/gaze-point \
   -H "Content-Type: application/json" \
@@ -164,11 +171,48 @@ curl -X POST http://localhost:8080/api/gaze-point \
     "x": 500.2,
     "y": 300.8,
     "panel": "A",
-    "phase": "middle"
+    "phase": "reading_A"
   }'
 ```
 
 Expected: `{"success":true,"id":1}`
+
+### Submit Multiple Gaze Points (Different Phases)
+
+```bash
+# Gaze point during reading Box A
+curl -X POST http://localhost:8080/api/gaze-point \
+  -H "Content-Type: application/json" \
+  -d '{
+    "session_id": 1,
+    "x": 500.2,
+    "y": 300.8,
+    "panel": "A",
+    "phase": "reading_A"
+  }'
+
+# Gaze point during reading Box B
+curl -X POST http://localhost:8080/api/gaze-point \
+  -H "Content-Type: application/json" \
+  -d '{
+    "session_id": 1,
+    "x": 1200.5,
+    "y": 400.2,
+    "panel": "B",
+    "phase": "reading_B"
+  }'
+
+# Gaze point while waiting
+curl -X POST http://localhost:8080/api/gaze-point \
+  -H "Content-Type: application/json" \
+  -d '{
+    "session_id": 1,
+    "x": 960.0,
+    "y": 540.0,
+    "panel": "A",
+    "phase": "waiting"
+  }'
+```
 
 ## 10. Submit Reading Event
 

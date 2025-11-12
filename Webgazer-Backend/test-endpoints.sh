@@ -155,9 +155,28 @@ GAZE_DATA="{
     \"x\": 500.2,
     \"y\": 300.8,
     \"panel\": \"A\",
-    \"phase\": \"middle\"
+    \"phase\": \"reading_A\"
 }"
 test_endpoint "Submit Gaze Point" "POST" "/api/gaze-point" "$GAZE_DATA"
+
+# Test 9a: Submit Multiple Gaze Points (testing different phases)
+GAZE_DATA_B="{
+    \"session_id\": $SESSION_ID,
+    \"x\": 1200.5,
+    \"y\": 400.2,
+    \"panel\": \"B\",
+    \"phase\": \"reading_B\"
+}"
+test_endpoint "Submit Gaze Point (Panel B)" "POST" "/api/gaze-point" "$GAZE_DATA_B"
+
+GAZE_DATA_WAITING="{
+    \"session_id\": $SESSION_ID,
+    \"x\": 960.0,
+    \"y\": 540.0,
+    \"panel\": \"A\",
+    \"phase\": \"waiting\"
+}"
+test_endpoint "Submit Gaze Point (Waiting Phase)" "POST" "/api/gaze-point" "$GAZE_DATA_WAITING"
 
 # Test 10: Submit Reading Event
 READING_EVENT_DATA="{
@@ -247,4 +266,8 @@ echo "=============================================="
 echo -e "${GREEN}All endpoint tests completed!${NC}"
 echo ""
 echo "To verify data was saved, run: ./view-db.sh"
+echo ""
+echo "To view gaze points specifically:"
+echo "  sqlite3 readability.db \"SELECT * FROM gaze_points WHERE session_id = $SESSION_ID;\""
+echo "  sqlite3 readability.db \"SELECT phase, COUNT(*) FROM gaze_points GROUP BY phase;\""
 

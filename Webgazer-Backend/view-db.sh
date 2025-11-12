@@ -49,6 +49,18 @@ echo "Total Calibration Data: $(sqlite3 "$DB_FILE" "SELECT COUNT(*) FROM calibra
 echo "Total Gaze Points: $(sqlite3 "$DB_FILE" "SELECT COUNT(*) FROM gaze_points;")"
 echo ""
 
+echo "Gaze Points Sample (last 10):"
+sqlite3 -header -column "$DB_FILE" "SELECT id, session_id, x, y, panel, phase, timestamp FROM gaze_points ORDER BY timestamp DESC LIMIT 10;"
+echo ""
+
+echo "Gaze Points by Phase:"
+sqlite3 -header -column "$DB_FILE" "SELECT phase, COUNT(*) as count FROM gaze_points GROUP BY phase ORDER BY count DESC;"
+echo ""
+
+echo "Gaze Points by Panel:"
+sqlite3 -header -column "$DB_FILE" "SELECT panel, COUNT(*) as count FROM gaze_points WHERE panel IS NOT NULL AND panel != '' GROUP BY panel ORDER BY count DESC;"
+echo ""
+
 echo "💡 Note: Quiz responses are stored as JSON in study_sessions.quiz_responses_json"
 echo "💡 Individual quiz responses should also be in the quiz_responses table"
 echo "   (if the frontend successfully submitted them)"
