@@ -1,5 +1,9 @@
 # Readability Study with WebGazer
 
+**License:** [GNU General Public License v3.0](LICENSE)
+
+**Live Demo:** [Add your deployment URL here]
+
 ## Overview
 
 This application conducts a web-based readability study that uses eye-tracking technology (WebGazer.js) to measure how different fonts affect reading performance and comprehension. The study employs a systematic pairwise comparison method to evaluate popular reading fonts.
@@ -72,9 +76,17 @@ Participants progress through the following stages:
 - **Session Management**: Browser-based session storage with backend persistence
 - **Comprehensive Data Collection**: All user interactions and eye movements recorded
 
-## Quick Start
+## Running Locally
 
-**Backend:**
+### Prerequisites
+
+- **Node.js** 18+ and npm
+- **Go** 1.21+
+- Modern web browser with camera access
+
+### Setup
+
+**1. Start Backend:**
 
 ```bash
 cd Webgazer-Backend
@@ -82,7 +94,9 @@ go mod tidy
 go run .
 ```
 
-**Frontend:**
+Backend runs on `http://localhost:8080` by default.
+
+**2. Start Frontend:**
 
 ```bash
 cd Webgazer-Frontend
@@ -90,7 +104,81 @@ npm install
 npm run dev
 ```
 
-Open `http://localhost:5173` and allow camera access.
+Frontend runs on `http://localhost:5173` by default.
+
+**3. Access Application:**
+
+Open `http://localhost:5173` in your browser and allow camera access when prompted.
+
+## Production Deployment
+
+### Backend Deployment
+
+**Build the backend:**
+
+```bash
+cd Webgazer-Backend
+go build -o readability-backend
+```
+
+**Run in production:**
+
+```bash
+PORT=8080 ./readability-backend
+```
+
+**Environment Variables:**
+
+- `PORT` - Server port (default: 8080)
+
+**Database:**
+
+- The SQLite database (`readability.db`) will be created automatically
+- For production, consider using a more robust database (PostgreSQL, MySQL) by updating the GORM connection in `main.go`
+
+**CORS Configuration:**
+
+- Update CORS allowed origins in `Webgazer-Backend/main.go` to include your production frontend URL
+
+### Frontend Deployment
+
+**Build for production:**
+
+```bash
+cd Webgazer-Frontend
+npm install
+npm run build
+```
+
+**Preview production build:**
+
+```bash
+npm run preview
+```
+
+**Deploy the `build` directory** to your hosting service (Vercel, Netlify, AWS S3, etc.)
+
+**Environment Variables:**
+
+- Set `VITE_API_URL` to your production backend URL
+- Create `.env.production` file:
+  ```
+  VITE_API_URL=https://your-backend-url.com
+  ```
+
+**Production Build Output:**
+
+- Static files are generated in `Webgazer-Frontend/build/`
+- Deploy this directory to any static hosting service
+
+### Recommended Production Setup
+
+1. **Backend**: Deploy Go binary to a cloud service (AWS EC2, Google Cloud Run, Heroku, etc.)
+2. **Frontend**: Deploy static build to a CDN (Vercel, Netlify, Cloudflare Pages)
+3. **Database**: For production, migrate from SQLite to PostgreSQL or MySQL for better performance and reliability
+4. **Environment**: Set production environment variables for both frontend and backend
+5. **HTTPS**: Ensure both frontend and backend use HTTPS in production
+6. **CORS**: Update CORS settings to allow your production frontend domain
 
 ## Project Structure
 
@@ -202,8 +290,12 @@ go mod tidy      # Update deps
 
 Access at `/admin` to manage study texts, passages, quiz questions, and view data.
 
+## License
+
+This project is licensed under the GNU General Public License v3.0. See the [LICENSE](LICENSE) file for details.
+
 ## Documentation
 
-- Integration: `INTEGRATION.md`
+- Integration Guide: `INTEGRATION.md`
 - Backend API: `Webgazer-Backend/README.md`
 - Admin API: `Webgazer-Backend/ADMIN_API.md`
