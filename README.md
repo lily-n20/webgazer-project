@@ -112,37 +112,16 @@ Open `http://localhost:5173` in your browser and allow camera access when prompt
 
 ## Production Deployment
 
-### Backend Deployment
+Production deployment will be handled during lab sessions. The application is ready for deployment with the following build commands:
 
-**Build the backend:**
+**Backend Build:**
 
 ```bash
 cd Webgazer-Backend
 go build -o readability-backend
 ```
 
-**Run in production:**
-
-```bash
-PORT=8080 ./readability-backend
-```
-
-**Environment Variables:**
-
-- `PORT` - Server port (default: 8080)
-
-**Database:**
-
-- The SQLite database (`readability.db`) will be created automatically
-- For production, consider using a more robust database (PostgreSQL, MySQL) by updating the GORM connection in `main.go`
-
-**CORS Configuration:**
-
-- Update CORS allowed origins in `Webgazer-Backend/main.go` to include your production frontend URL
-
-### Frontend Deployment
-
-**Build for production:**
+**Frontend Build:**
 
 ```bash
 cd Webgazer-Frontend
@@ -150,35 +129,7 @@ npm install
 npm run build
 ```
 
-**Preview production build:**
-
-```bash
-npm run preview
-```
-
-**Deploy the `build` directory** to your hosting service (Vercel, Netlify, AWS S3, etc.)
-
-**Environment Variables:**
-
-- Set `VITE_API_URL` to your production backend URL
-- Create `.env.production` file:
-  ```
-  VITE_API_URL=https://your-backend-url.com
-  ```
-
-**Production Build Output:**
-
-- Static files are generated in `Webgazer-Frontend/build/`
-- Deploy this directory to any static hosting service
-
-### Recommended Production Setup
-
-1. **Backend**: Deploy Go binary to a cloud service (AWS EC2, Google Cloud Run, Heroku, etc.)
-2. **Frontend**: Deploy static build to a CDN (Vercel, Netlify, Cloudflare Pages)
-3. **Database**: For production, migrate from SQLite to PostgreSQL or MySQL for better performance and reliability
-4. **Environment**: Set production environment variables for both frontend and backend
-5. **HTTPS**: Ensure both frontend and backend use HTTPS in production
-6. **CORS**: Update CORS settings to allow your production frontend domain
+The production build outputs static files in `Webgazer-Frontend/build/` for frontend deployment and a Go binary for backend deployment.
 
 ## Project Structure
 
